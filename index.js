@@ -1,7 +1,6 @@
 const SOURCES = [
     { id: 'wand', label: '魔法棒', roots: ['#extensionsMenu'], selector: '.list-group-item[id]' },
     { id: 'options', label: '左下菜单', roots: ['#options'], selector: 'a[id], button[id], .menu_button[id]' },
-    { id: 'extensions', label: '扩展面板', roots: ['#extensions_settings', '#extensions_settings2'], selector: '.inline-drawer-toggle[id], button[id], .menu_button[id], a[id]' },
 ];
 const q = (selector, root = document) => root.querySelector(selector);
 const ctx = () => SillyTavern.getContext();
@@ -12,7 +11,7 @@ const shortcutKey = item => `${item.source || 'wand'}:${item.id}`;
 function db() {
     const value = ctx().extensionSettings.jellyfish ??= { shortcuts: [] };
     if (!Array.isArray(value.shortcuts)) value.shortcuts = [];
-    value.shortcuts = value.shortcuts.filter(item => item && typeof item.id === 'string' && item.id);
+    value.shortcuts = value.shortcuts.filter(item => item && typeof item.id === 'string' && item.id && item.source !== 'extensions');
     return value;
 }
 
@@ -92,14 +91,6 @@ function appendIcon(button, iconClass) {
     button.append(icon);
 }
 
-function openExtensionsPanel() {
-    const opener = q('#extensions-settings-button');
-    if (!opener) return;
-    const content = opener.closest('.drawer')?.querySelector('.drawer-content');
-    const closed = content?.classList.contains('closedDrawer') || opener.classList.contains('closedIcon') || Boolean(q('.closedIcon', opener));
-    if (closed || !content) opener.click();
-}
-
 let bar;
 let shortcutHost;
 let panel;
@@ -126,14 +117,7 @@ function renderShortcuts() {
                 notify(`${sourceLabel(saved.source)}里还没有“${info.label || saved.id}”，请确认原扩展已加载`, true);
                 return;
             }
-            if ((saved.source || 'wand') === 'extensions') {
-                openExtensionsPanel();
-                setTimeout(() => {
-                    const current = originalAction(saved);
-                    if (current) current.click();
-                    else notify(`没有找到“${info.label || saved.id}”的原入口`, true);
-                }, 40);
-            } else target.click();
+            target.click();
         });
         shortcutHost.append(button);
     }
@@ -214,7 +198,7 @@ function openSettings() {
     const availableTitle = node('h3', '可添加的功能');
     const available = node('div', '', 'jf-list');
     const refresh = node('button', '刷新列表', 'jf-refresh');
-    const note = node('p', '可添加魔法棒、左下菜单和扩展面板中的可点击功能。调整顺序或删除只会改变 JellyFish，不会修改原功能。', 'jf-note');
+    const note = node('p', '可添加魔法棒和左下菜单中的可点击功能。调整顺序或删除只会改变 JellyFish，不会修改原功能。', 'jf-note');
     availableTitle.append(refresh);
     body.append(note, selectedTitle, selected, availableTitle, available);
     panel.append(header, body);
