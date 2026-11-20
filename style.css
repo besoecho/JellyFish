@@ -78,15 +78,16 @@
 .jf-jumps {
     display: flex;
     flex: none;
-    gap: 0;
+    gap: 2px;
+    margin-right: 4px;
 }
 
 #jf-bar .jf-jumps button {
-    width: 20px;
-    min-width: 20px;
-    height: 20px;
+    width: 25px;
+    min-width: 25px;
+    height: 25px;
     padding: 0;
-    font-size: 11px;
+    font-size: 12px;
 }
 
 .jf-panel {

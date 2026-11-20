@@ -87,12 +87,13 @@ with sync_playwright() as pw:
     expect(page.get_by_role('button', name='当前楼层到底部')).to_be_visible()
     expect(page.locator('.jf-jumps .fa-arrow-up')).to_have_count(1)
     expect(page.locator('.jf-jumps .fa-arrow-down')).to_have_count(1)
-    assert page.locator('.jf-jumps').evaluate("e=>getComputedStyle(e).gap") == '0px'
+    assert page.locator('.jf-jumps').evaluate("e=>getComputedStyle(e).gap") == '2px'
+    assert page.locator('.jf-jumps').evaluate("e=>getComputedStyle(e).marginRight") == '4px'
     assert page.locator('.jf-jumps').evaluate("e=>getComputedStyle(e).borderLeftWidth") == '0px'
     assert page.locator('.jf-shortcuts').evaluate("e=>getComputedStyle(e).gap") == '0px'
     for name in ['当前楼层回顶', '当前楼层到底部']:
         box = page.get_by_role('button', name=name).bounding_box()
-        assert box['width'] <= 20 and box['height'] <= 20
+        assert box['width'] <= 25 and box['height'] <= 25
     assert page.evaluate("c.extensionSettings.jellyfish.shortcuts.length") == 0
 
     page.get_by_role('button', name='JellyFish 设置').click()
@@ -175,4 +176,4 @@ with sync_playwright() as pw:
     browser.close()
 
 server.shutdown()
-print('PASS · wand/options discovery, extension cleanup, duplicate-ID handling, native action clicks, add/remove/reorder, persistence, late loading, missing targets, compact bar, 20px jumps, current-floor jumps')
+print('PASS · wand/options discovery, extension cleanup, duplicate-ID handling, native action clicks, add/remove/reorder, persistence, late loading, missing targets, compact bar, 25px jumps, current-floor jumps')
