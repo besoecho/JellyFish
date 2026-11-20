@@ -82,6 +82,7 @@ with sync_playwright() as pw:
 
     expect(page.locator('#jf-bar')).to_be_visible()
     assert page.locator('#jf-bar + #chat').count() == 1
+    assert page.locator('#jf-bar').bounding_box()['height'] <= 25
     expect(page.get_by_role('button', name='当前楼层回顶')).to_be_visible()
     expect(page.get_by_role('button', name='当前楼层到底部')).to_be_visible()
     expect(page.locator('.jf-jumps .fa-arrow-up')).to_have_count(1)
@@ -174,4 +175,4 @@ with sync_playwright() as pw:
     browser.close()
 
 server.shutdown()
-print('PASS · wand/options discovery, extension cleanup, duplicate-ID handling, native action clicks, add/remove/reorder, persistence, late loading, missing targets, 20px jumps, current-floor jumps')
+print('PASS · wand/options discovery, extension cleanup, duplicate-ID handling, native action clicks, add/remove/reorder, persistence, late loading, missing targets, compact bar, 20px jumps, current-floor jumps')
