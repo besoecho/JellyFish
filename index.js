@@ -1,6 +1,13 @@
-const ACTION_SELECTOR = '.list-group-item[id]';
+const SOURCES = [
+    { id: 'wand', label: '魔法棒', roots: ['#extensionsMenu'], selector: '.list-group-item[id]' },
+    { id: 'options', label: '左下菜单', roots: ['#options'], selector: 'a[id], button[id], .menu_button[id]' },
+    { id: 'extensions', label: '扩展面板', roots: ['#extensions_settings', '#extensions_settings2'], selector: '.inline-drawer-toggle[id], button[id], .menu_button[id], a[id]' },
+];
 const q = (selector, root = document) => root.querySelector(selector);
 const ctx = () => SillyTavern.getContext();
+const sourceDef = id => SOURCES.find(source => source.id === id);
+const sourceLabel = id => sourceDef(id || 'wand')?.label || '魔法棒';
+const shortcutKey = item => `${item.source || 'wand'}:${item.id}`;
 
 function db() {
     const value = ctx().extensionSettings.jellyfish ??= { shortcuts: [] };
@@ -26,29 +33,54 @@ function notify(message, error = false) {
     else console[error ? 'error' : 'info']('JellyFish', message);
 }
 
-function originalAction(id) {
-    const element = document.getElementById(id);
-    return element?.closest('#extensionsMenu') && element.matches(ACTION_SELECTOR) ? element : null;
+function isSuppressed(element, root) {
+    for (let current = element; current && current !== root; current = current.parentElement) {
+        if (current.hidden || current.classList.contains('displayNone') || current.style.display === 'none') return true;
+    }
+    return false;
 }
 
-function actionInfo(element) {
+function originalAction(saved) {
+    const source = sourceDef(saved.source || 'wand');
+    if (!source) return null;
+    for (const selector of source.roots) {
+        const root = q(selector);
+        if (!root) continue;
+        const element = [...root.querySelectorAll(source.selector)].find(item => item.id === saved.id && !isSuppressed(item, root));
+        if (element) return element;
+    }
+    return null;
+}
+
+function actionInfo(element, source) {
     const icon = element.querySelector('.extensionsMenuExtensionButton, .fa-solid, .fa-regular, .fa-brands');
     const iconClass = icon
         ? [...icon.classList].filter(name => !['extensionsMenuExtensionButton', 'fa-fw'].includes(name)).join(' ')
         : 'fa-solid fa-puzzle-piece';
     const label = (element.textContent || '').replace(/\s+/g, ' ').trim() || element.title || element.id;
-    return { id: element.id, label, icon: iconClass || 'fa-solid fa-puzzle-piece' };
+    return {
+        id: element.id,
+        source: source || SOURCES.find(item => item.roots.some(selector => element.closest(selector)))?.id || 'wand',
+        label,
+        icon: iconClass || 'fa-solid fa-puzzle-piece',
+    };
 }
 
 function availableActions() {
-    const menu = q('#extensionsMenu');
-    if (!menu) return [];
     const seen = new Set();
     const items = [];
-    for (const element of menu.querySelectorAll(ACTION_SELECTOR)) {
-        if (seen.has(element.id)) continue;
-        seen.add(element.id);
-        items.push(actionInfo(element));
+    for (const source of SOURCES) {
+        for (const selector of source.roots) {
+            const root = q(selector);
+            if (!root) continue;
+            for (const element of root.querySelectorAll(source.selector)) {
+                if (isSuppressed(element, root)) continue;
+                const info = actionInfo(element, source.id);
+                if (seen.has(shortcutKey(info))) continue;
+                seen.add(shortcutKey(info));
+                items.push(info);
+            }
+        }
     }
     return items;
 }
@@ -58,6 +90,14 @@ function appendIcon(button, iconClass) {
     icon.className = iconClass;
     icon.setAttribute('aria-hidden', 'true');
     button.append(icon);
+}
+
+function openExtensionsPanel() {
+    const opener = q('#extensions-settings-button');
+    if (!opener) return;
+    const content = opener.closest('.drawer')?.querySelector('.drawer-content');
+    const closed = content?.classList.contains('closedDrawer') || opener.classList.contains('closedIcon') || Boolean(q('.closedIcon', opener));
+    if (closed || !content) opener.click();
 }
 
 let bar;
@@ -70,7 +110,7 @@ function renderShortcuts() {
     if (!shortcutHost) return;
     shortcutHost.replaceChildren();
     for (const saved of db().shortcuts) {
-        const original = originalAction(saved.id);
+        const original = originalAction(saved);
         const info = original ? actionInfo(original) : saved;
         const button = node('button', '', 'jf-shortcut');
         button.dataset.shortcutId = saved.id;
@@ -81,12 +121,19 @@ function renderShortcuts() {
         appendIcon(button, info.icon || 'fa-solid fa-puzzle-piece');
         button.append(node('span', info.label || saved.id, 'jf-label'));
         button.addEventListener('click', () => {
-            const target = originalAction(saved.id);
+            const target = originalAction(saved);
             if (!target) {
-                notify(`魔法棒里还没有“${info.label || saved.id}”，请确认原扩展已加载`, true);
+                notify(`${sourceLabel(saved.source)}里还没有“${info.label || saved.id}”，请确认原扩展已加载`, true);
                 return;
             }
-            target.click();
+            if ((saved.source || 'wand') === 'extensions') {
+                openExtensionsPanel();
+                setTimeout(() => {
+                    const current = originalAction(saved);
+                    if (current) current.click();
+                    else notify(`没有找到“${info.label || saved.id}”的原入口`, true);
+                }, 40);
+            } else target.click();
         });
         shortcutHost.append(button);
     }
@@ -129,7 +176,7 @@ function removeShortcut(index) {
 }
 
 function addShortcut(info) {
-    if (db().shortcuts.some(item => item.id === info.id)) return;
+    if (db().shortcuts.some(item => shortcutKey(item) === shortcutKey(info))) return;
     db().shortcuts.push(info);
     save();
     renderShortcuts();
@@ -141,6 +188,7 @@ function listRow(info, missing = false) {
     const name = node('div', '', 'jf-row-name');
     appendIcon(name, info.icon || 'fa-solid fa-puzzle-piece');
     name.append(node('span', info.label || info.id));
+    name.append(node('small', sourceLabel(info.source)));
     if (missing) name.append(node('small', '未检测到原入口'));
     row.append(name);
     return row;
@@ -163,10 +211,10 @@ function openSettings() {
     const body = node('section');
     const selectedTitle = node('h3', '横栏里的快捷功能');
     const selected = node('div', '', 'jf-list');
-    const availableTitle = node('h3', '魔法棒里的可用功能');
+    const availableTitle = node('h3', '可添加的功能');
     const available = node('div', '', 'jf-list');
     const refresh = node('button', '刷新列表', 'jf-refresh');
-    const note = node('p', '快捷按钮会调用魔法棒里的原入口。调整顺序或删除只会改变 JellyFish，不会修改原扩展。', 'jf-note');
+    const note = node('p', '可添加魔法棒、左下菜单和扩展面板中的可点击功能。调整顺序或删除只会改变 JellyFish，不会修改原功能。', 'jf-note');
     availableTitle.append(refresh);
     body.append(note, selectedTitle, selected, availableTitle, available);
     panel.append(header, body);
@@ -179,7 +227,7 @@ function openSettings() {
 
         if (!shortcuts.length) selected.append(node('p', '还没有添加快捷功能。', 'jf-empty'));
         shortcuts.forEach((saved, index) => {
-            const original = originalAction(saved.id);
+            const original = originalAction(saved);
             const info = original ? actionInfo(original) : saved;
             const row = listRow(info, !original);
             const controls = node('div', '', 'jf-row-actions');
@@ -201,17 +249,22 @@ function openSettings() {
             selected.append(row);
         });
 
-        const unused = availableItems.filter(info => !shortcuts.some(item => item.id === info.id));
+        const unused = availableItems.filter(info => !shortcuts.some(item => shortcutKey(item) === shortcutKey(info)));
         if (!unused.length) {
-            available.append(node('p', availableItems.length ? '所有已检测到的功能都已添加。' : '暂未检测到魔法棒功能，请等扩展加载后刷新。', 'jf-empty'));
+            available.append(node('p', availableItems.length ? '所有已检测到的功能都已添加。' : '暂未检测到可添加功能，请等扩展加载后刷新。', 'jf-empty'));
         }
-        for (const info of unused) {
-            const row = listRow(info);
-            const add = node('button', '添加');
-            add.setAttribute('aria-label', `添加 ${info.label}`);
-            add.addEventListener('click', () => addShortcut(info));
-            row.append(add);
-            available.append(row);
+        for (const source of SOURCES) {
+            const group = unused.filter(info => info.source === source.id);
+            if (!group.length) continue;
+            available.append(node('h4', source.label, 'jf-source-title'));
+            for (const info of group) {
+                const row = listRow(info);
+                const add = node('button', '添加');
+                add.setAttribute('aria-label', `添加 ${info.label}`);
+                add.addEventListener('click', () => addShortcut(info));
+                row.append(add);
+                available.append(row);
+            }
         }
     }
 
@@ -254,13 +307,14 @@ function init() {
 
     shortcutHost = node('div', '', 'jf-shortcuts');
     shortcutHost.setAttribute('role', 'group');
-    shortcutHost.setAttribute('aria-label', '魔法棒快捷功能');
+    shortcutHost.setAttribute('aria-label', 'JellyFish 快捷功能');
 
     const jumps = node('div', '', 'jf-jumps');
-    for (const [label, text, bottom] of [['当前楼层回顶', '↑', false], ['当前楼层到底部', '↓', true]]) {
-        const button = node('button', text);
+    for (const [label, icon, bottom] of [['当前楼层回顶', 'fa-solid fa-arrow-up', false], ['当前楼层到底部', 'fa-solid fa-arrow-down', true]]) {
+        const button = node('button');
         button.title = label;
         button.setAttribute('aria-label', label);
+        appendIcon(button, icon);
         button.addEventListener('click', () => jump(bottom));
         jumps.append(button);
     }
@@ -269,8 +323,13 @@ function init() {
     chat.before(bar);
     renderShortcuts();
 
-    const menu = q('#extensionsMenu');
-    if (menu) new MutationObserver(later).observe(menu, { childList: true, subtree: true });
+    const observer = new MutationObserver(later);
+    for (const source of SOURCES) {
+        for (const selector of source.roots) {
+            const root = q(selector);
+            if (root) observer.observe(root, { childList: true, subtree: true });
+        }
+    }
     setTimeout(later, 1500);
 }
 

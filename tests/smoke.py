@@ -27,15 +27,38 @@ html,body{margin:0} #chat{height:240px;overflow-y:auto;border:1px solid #888}
         </div>
     </div>
 </div>
+<div id=options style=display:none>
+    <div class=options-content>
+        <a id=option_test class=displayNone><i class="fa-solid fa-eye-slash"></i><span>左下隐藏副本</span></a>
+        <a id=option_test><i class="fa-solid fa-bars"></i><span>左下测试</span></a>
+    </div>
+</div>
+<div id=extensions_drawer class=drawer>
+    <div id=extensions-settings-button class=drawer-toggle><div class=closedIcon></div></div>
+    <div class="drawer-content closedDrawer">
+        <div id=extensions_settings>
+            <div class=inline-drawer><div id=extension_test class=inline-drawer-toggle>
+                <div class="fa-solid fa-cubes"></div><span>扩展测试</span>
+            </div></div>
+        </div>
+    </div>
+</div>
 <script>
 window.calls=[];
 window.notices=[];
 const c={extensionSettings:{},saveSettingsDebounced(){this.saved=(this.saved||0)+1;}};
 window.SillyTavern={getContext:()=>c};
 window.toastr={info:(m)=>notices.push(m),error:(m)=>notices.push(m)};
-for(const [id,name] of [['alpha_action','alpha'],['beta_action','beta']]) {
+for(const [id,name] of [['alpha_action','alpha'],['beta_action','beta'],['extension_test','extension']]) {
     document.getElementById(id).addEventListener('click',()=>calls.push(name));
 }
+const optionCopies=document.querySelectorAll('#options #option_test');
+optionCopies[0].addEventListener('click',()=>calls.push('hidden-options'));
+optionCopies[1].addEventListener('click',()=>calls.push('options'));
+document.getElementById('extensions-settings-button').addEventListener('click',()=>{
+    document.querySelector('#extensions_drawer .drawer-content').classList.toggle('closedDrawer');
+    document.querySelector('#extensions-settings-button .closedIcon')?.classList.remove('closedIcon');
+});
 </script>
 <script type=module src=/index.js></script>
 """
@@ -75,9 +98,16 @@ with sync_playwright() as pw:
     assert page.locator('#jf-bar + #chat').count() == 1
     expect(page.get_by_role('button', name='当前楼层回顶')).to_be_visible()
     expect(page.get_by_role('button', name='当前楼层到底部')).to_be_visible()
+    expect(page.locator('.jf-jumps .fa-arrow-up')).to_have_count(1)
+    expect(page.locator('.jf-jumps .fa-arrow-down')).to_have_count(1)
+    assert page.locator('.jf-jumps').evaluate("e=>getComputedStyle(e).gap") == '0px'
+    assert page.locator('.jf-shortcuts').evaluate("e=>getComputedStyle(e).gap") == '0px'
+    for name in ['当前楼层回顶', '当前楼层到底部']:
+        assert page.get_by_role('button', name=name).bounding_box()['width'] <= 30
 
     page.get_by_role('button', name='JellyFish 设置').click()
     expect(page.locator('.jf-panel[open]')).to_be_visible()
+    expect(page.locator('.jf-source-title')).to_have_text(['魔法棒', '左下菜单', '扩展面板'])
     page.get_by_role('button', name='添加 Alpha 功能').click()
     page.get_by_role('button', name='添加 Beta 功能').click()
     expect(page.locator('.jf-shortcut')).to_have_count(2)
@@ -117,6 +147,27 @@ with sync_playwright() as pw:
     assert page.evaluate('calls.at(-1)') == 'late'
     expect(page.locator('.jf-shortcut')).to_have_count(2)
 
+    # The lower-left options menu and extension panel expose independently addressable actions.
+    page.get_by_role('button', name='JellyFish 设置').click()
+    expect(page.get_by_role('button', name='添加 左下测试')).to_have_count(1)
+    expect(page.get_by_role('button', name='添加 左下隐藏副本')).to_have_count(0)
+    page.get_by_role('button', name='添加 左下测试').click()
+    page.get_by_role('button', name='添加 扩展测试').click()
+    page.locator('.jf-panel').get_by_role('button', name='关闭', exact=True).click()
+    page.locator('[data-shortcut-id=option_test]').click()
+    assert page.evaluate('calls.at(-1)') == 'options'
+    page.locator('[data-shortcut-id=extension_test]').click()
+    page.wait_for_function("calls.at(-1)==='extension'")
+    expect(page.locator('#extensions_drawer .drawer-content')).not_to_have_class('closedDrawer')
+    assert page.evaluate("c.extensionSettings.jellyfish.shortcuts.find(x=>x.id==='option_test').source") == 'options'
+    assert page.evaluate("c.extensionSettings.jellyfish.shortcuts.find(x=>x.id==='extension_test').source") == 'extensions'
+    expect(page.locator('.jf-shortcut')).to_have_count(4)
+
+    # If only the hidden duplicate remains, the shortcut must not invoke it or masquerade as available.
+    page.evaluate("document.querySelectorAll('#options #option_test')[1].remove()")
+    expect(page.locator('[data-shortcut-id=option_test]')).to_be_disabled()
+    assert page.evaluate('calls.at(-1)') == 'extension'
+
     # Down scrolls the current floor, not necessarily the latest floor; up returns its top to the chat top.
     page.get_by_role('button', name='当前楼层到底部').click()
     assert page.locator('#chat').evaluate('e=>e.scrollTop') > 200
@@ -138,4 +189,4 @@ with sync_playwright() as pw:
     browser.close()
 
 server.shutdown()
-print('PASS · wand discovery, native action click, add, remove, reorder, persistence, late loading, missing target, current-floor jumps')
+print('PASS · wand/options/extensions discovery, duplicate-ID handling, native action clicks, add/remove/reorder, persistence, late loading, missing targets, compact layout, current-floor jumps')
