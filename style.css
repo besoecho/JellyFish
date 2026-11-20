@@ -1,0 +1,243 @@
+#jf-bar, .jf-panel {
+    --jf-line: var(--SmartThemeBorderColor, #6668);
+    --jf-fg: var(--SmartThemeBodyColor, #eee);
+    color: var(--jf-fg);
+    font-family: inherit;
+}
+
+#jf-bar {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex: 0 0 36px;
+    width: 100%;
+    height: 36px;
+    padding: 0 5px;
+    border-bottom: 1px solid var(--jf-line);
+    background: var(--SmartThemeBlurTintColor, #252528);
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+#jf-bar button, .jf-panel button {
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+}
+
+#jf-bar button {
+    flex: none;
+    height: 34px;
+    min-width: 36px;
+    padding: 0 8px;
+    border-radius: 8px;
+    line-height: 1;
+}
+
+#jf-bar button:hover, #jf-bar button:focus-visible {
+    background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+#jf-bar button[aria-disabled="true"] {
+    opacity: .42;
+}
+
+.jf-shortcuts {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+}
+
+.jf-shortcuts::-webkit-scrollbar {
+    display: none;
+}
+
+#jf-bar .jf-shortcut {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 180px;
+}
+
+.jf-shortcut .jf-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+}
+
+.jf-jumps {
+    display: flex;
+    flex: none;
+    gap: 1px;
+    padding-left: 4px;
+    border-left: 1px solid var(--jf-line);
+}
+
+#jf-bar .jf-jumps button {
+    font-size: 20px;
+    font-weight: 650;
+}
+
+.jf-panel {
+    width: min(560px, calc(100vw - 20px));
+    max-height: 84dvh;
+    padding: 0;
+    border: 1px solid var(--jf-line);
+    border-radius: 14px;
+    background: var(--SmartThemeBlurTintColor, #242427);
+    color: var(--jf-fg);
+    box-shadow: 0 18px 60px #0005;
+    box-sizing: border-box;
+}
+
+.jf-panel[open] {
+    display: flex;
+    flex-direction: column;
+}
+
+.jf-panel::backdrop {
+    background: #0008;
+    backdrop-filter: blur(2px);
+}
+
+.jf-panel header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex: none;
+    padding: 12px 15px;
+    border-bottom: 1px solid var(--jf-line);
+}
+
+.jf-panel header strong {
+    font-size: 18px;
+    letter-spacing: .04em;
+}
+
+.jf-panel header button, .jf-panel .jf-row-actions button, .jf-panel .jf-row > button, .jf-panel .jf-refresh {
+    padding: 5px 9px;
+    border: 1px solid var(--jf-line);
+    border-radius: 7px;
+}
+
+.jf-panel section {
+    min-height: 0;
+    padding: 10px 14px 16px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.jf-panel h3 {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 14px 0 7px;
+    font-size: 14px;
+}
+
+.jf-panel h3:first-of-type {
+    margin-top: 4px;
+}
+
+.jf-note, .jf-empty {
+    color: var(--SmartThemeBodyColor, #aaa);
+    opacity: .72;
+    font-size: 12px;
+    line-height: 1.55;
+}
+
+.jf-note {
+    margin: 0 0 12px;
+}
+
+.jf-empty {
+    margin: 8px 2px;
+}
+
+.jf-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--jf-line);
+}
+
+.jf-row-name {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex: 1;
+    min-width: 0;
+}
+
+.jf-row-name > i {
+    flex: none;
+    width: 20px;
+    text-align: center;
+}
+
+.jf-row-name > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.jf-row-name small {
+    flex: none;
+    opacity: .55;
+    font-size: 11px;
+}
+
+.jf-row-actions {
+    display: flex;
+    flex: none;
+    gap: 4px;
+}
+
+.jf-panel button:disabled {
+    opacity: .3;
+    cursor: default;
+}
+
+.jf-panel :is(button):focus-visible, #jf-bar :is(button):focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 1px;
+}
+
+@media (max-width: 640px) {
+    #jf-bar .jf-shortcut {
+        width: 38px;
+        padding: 0;
+        justify-content: center;
+    }
+
+    .jf-shortcut .jf-label {
+        display: none;
+    }
+}
+
+@media (pointer: coarse) {
+    #jf-bar {
+        flex-basis: 40px;
+        height: 40px;
+    }
+
+    #jf-bar button {
+        min-width: 40px;
+        height: 38px;
+    }
+
+    .jf-panel button {
+        min-height: 36px;
+    }
+}

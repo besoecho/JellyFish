@@ -1,0 +1,9 @@
+{
+    "display_name": "JellyFish",
+    "loading_order": 80,
+    "js": "index.js",
+    "css": "style.css",
+    "author": "besoecho",
+    "version": "0.1.0",
+    "homePage": "https://github.com/besoecho/JellyFish"
+}
