@@ -286,7 +286,9 @@ function init() {
     const settingsButton = node('button', '', 'jf-settings');
     settingsButton.title = 'JellyFish 设置';
     settingsButton.setAttribute('aria-label', 'JellyFish 设置');
-    appendIcon(settingsButton, 'fa-solid fa-sliders');
+    const medusa = node('span', '', 'jf-medusa');
+    medusa.setAttribute('aria-hidden', 'true');
+    settingsButton.append(medusa);
     settingsButton.addEventListener('click', openSettings);
 
     shortcutHost = node('div', '', 'jf-shortcuts');

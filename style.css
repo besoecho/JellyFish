@@ -6,6 +6,9 @@
 }
 
 #jf-bar {
+    --jf-lilac: #bda9d9;
+    --jf-surface: var(--SmartThemeBlurTintColor, #252528);
+    --jf-foam: color-mix(in srgb, var(--jf-fg) 22%, transparent);
     display: flex;
     align-items: center;
     gap: 1px;
@@ -14,7 +17,16 @@
     height: 25px;
     padding: 0 3px;
     border-bottom: 1px solid var(--jf-line);
-    background: var(--SmartThemeBlurTintColor, #252528);
+    background-color: var(--jf-surface);
+    /* Leave the centre quiet for labels. Two tide lines and a few bubbles
+       sit in the background, so decoration can never intercept a tap. */
+    background-image:
+        radial-gradient(circle at 75% 6px, transparent 1.5px, var(--jf-foam) 1.7px 2.3px, transparent 2.6px),
+        radial-gradient(circle at 77% 12px, var(--jf-foam) 1px, transparent 1.4px),
+        radial-gradient(ellipse 42% 18px at 59% 38px, transparent 96%, var(--jf-foam) 99%, transparent 104%),
+        radial-gradient(ellipse 34% 16px at 88% 34px, transparent 96%, var(--jf-foam) 99%, transparent 104%),
+        linear-gradient(102deg, #77c6c633, #84aeb313 38%, #b4a2d52e);
+    box-shadow: inset 0 1px #ffffff12;
     box-sizing: border-box;
     overflow: hidden;
 }
@@ -36,8 +48,54 @@
     line-height: 1;
 }
 
-#jf-bar button:hover, #jf-bar button:focus-visible {
-    background: color-mix(in srgb, currentColor 10%, transparent);
+#jf-bar .jf-settings {
+    display: grid;
+    place-items: center;
+    margin-inline-end: 3px;
+    border-radius: 7px 11px 7px 11px;
+    color: #324b61;
+    background: linear-gradient(115deg, #afe1da, #d5c9e6);
+    box-shadow: inset 0 0 0 1px #ffffff60;
+}
+
+/* A bell, two eyes and three trailing arms, sized for the 25px rail. */
+.jf-medusa {
+    position: relative;
+    width: 15px;
+    height: 16px;
+    transform: rotate(-9deg);
+}
+.jf-medusa::before, .jf-medusa::after {
+    content: "";
+    position: absolute;
+    box-sizing: border-box;
+}
+.jf-medusa::before {
+    inset: 0 0 auto;
+    height: 10px;
+    border: 1.5px solid currentColor;
+    border-radius: 9px 9px 4px 4px;
+    background: radial-gradient(circle at 36% 65%, currentColor .8px, transparent 1.1px),
+                radial-gradient(circle at 68% 65%, currentColor .8px, transparent 1.1px), #fff6;
+}
+.jf-medusa::after {
+    top: 10px;
+    left: 2px;
+    width: 1.5px;
+    height: 4px;
+    border-radius: 2px;
+    background: currentColor;
+    box-shadow: 4.5px 1px currentColor, 9px 0 currentColor;
+    transform: skewX(-12deg);
+}
+
+#jf-bar button:enabled:active {
+    transform: translateY(1px);
+}
+@media (hover: hover) {
+    #jf-bar button:enabled:hover {
+        box-shadow: inset 0 0 0 1px currentColor;
+    }
 }
 
 #jf-bar button[aria-disabled="true"] {
@@ -65,6 +123,9 @@
     align-items: center;
     gap: 6px;
     max-width: 180px;
+    background: color-mix(in srgb, var(--jf-fg) 6%, transparent);
+    border-inline: 1px solid transparent;
+    background-clip: padding-box;
 }
 
 .jf-shortcut .jf-label {
@@ -80,6 +141,9 @@
     flex: none;
     gap: 2px;
     margin-right: 4px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--jf-lilac) 19%, transparent);
+    box-shadow: inset 0 0 0 1px var(--jf-foam);
 }
 
 #jf-bar .jf-jumps button {
@@ -88,6 +152,7 @@
     height: 25px;
     padding: 0;
     font-size: 12px;
+    border-radius: 50%;
 }
 
 .jf-panel {
@@ -220,6 +285,21 @@
 .jf-panel :is(button):focus-visible, #jf-bar :is(button):focus-visible {
     outline: 2px solid currentColor;
     outline-offset: 1px;
+}
+
+#jf-bar button:focus-visible {
+    outline-offset: -2px;
+}
+
+@media (forced-colors: active) {
+    #jf-bar .jf-settings, #jf-bar .jf-jumps {
+        outline: 1px solid ButtonText;
+        outline-offset: -1px;
+    }
+    #jf-bar .jf-medusa::after {
+        forced-color-adjust: none;
+        color: ButtonText;
+    }
 }
 
 @media (max-width: 640px) {
